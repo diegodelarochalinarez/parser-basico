@@ -10,4 +10,8 @@ public class Idx extends Expx{
     public String getIdx() {
         return s1;
     }
+    @Override
+    public String toString(){
+        return s1;
+    }
 }

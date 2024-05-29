@@ -1,0 +1,18 @@
+a int ;
+b int ;
+c int ;
+if a
+then a = b
+else print a + c
+EOF
+
+Gramática de Lenguaje
+P -> D S <eof>
+D -> id (int | string) ℇ ; D
+D -> ℇ (cadena nula)
+S  -> if E then S else S
+S ->  id = E
+S -> print E
+E -> id + id
+E -> id
+id -> letra (letra | digito) *

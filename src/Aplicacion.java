@@ -6,8 +6,9 @@ import java.awt.event.ActionListener;
 import javax.swing.*;
 
 public class Aplicacion extends JFrame implements ActionListener {
+    private JPanel contenido;
     private JLabel lblResultadoSintactico, lblResultadoLexico;
-    private JTextArea txtCodigo;
+    private JTextArea txtCodigo, txtByteCode;
     private JButton btnAnalizar;
     public Aplicacion(){
         super("Parser Recursivo Descendente");
@@ -24,7 +25,13 @@ public class Aplicacion extends JFrame implements ActionListener {
         p.add(lblResultadoSintactico);
 
         add(p, BorderLayout.NORTH);
-        add(txtCodigo, BorderLayout.CENTER);
+        txtByteCode = new JTextArea("ByteCode:");
+        contenido = new JPanel(new GridLayout(1,2, 15, 15));
+        contenido.add(txtCodigo);
+        contenido.add(txtByteCode);
+
+
+        add(contenido, BorderLayout.CENTER);
         add(btnAnalizar, BorderLayout.SOUTH);
 
         btnAnalizar.addActionListener(this);
@@ -32,16 +39,18 @@ public class Aplicacion extends JFrame implements ActionListener {
     }
 
     public static void main(String[] args) {
-       new Aplicacion();
+        new Aplicacion();
    }
 
     @Override
     public void actionPerformed(ActionEvent e) {
         System.out.println(txtCodigo.getText());
         Parser p = new Parser(txtCodigo.getText());
+        txtByteCode.setText("ByteCode: \n" + p.getBytecode());
         if(p.isCorrecto()) {
             lblResultadoSintactico.setText("Sintacticamente Correcto");
             lblResultadoSintactico.setForeground(new Color(106, 166, 108));
+
         }else{
             lblResultadoSintactico.setText("Sintacticamente Incorrecto");
             lblResultadoSintactico.setForeground(new Color(191, 25, 25));
