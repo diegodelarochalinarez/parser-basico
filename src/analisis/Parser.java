@@ -2,7 +2,6 @@ package analisis;
 
 import javax.swing.JOptionPane;
 import tipos.*;
-import analisis.*;
 import java.util.Vector;
 import org.apache.commons.lang3.ArrayUtils;
 
