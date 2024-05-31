@@ -15,13 +15,13 @@ public class ObjectCode {
     public static void main(String[] args) {
         String inputFileName = "ensambla.txt";
         String outputFileName = "ensambla.obj";
+        int address = 0;
 
         // Primera pasada: construir la tabla de símbolos con direcciones
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFileName))) {
             String line;
-            int address = 0;
             while ((line = reader.readLine()) != null) {
-                System.out.println(String.format("%04X", address) + "\t " + line);
+                System.out.println(String.format("%04X", address) + " " + line);
                 address = labelLine(line, address);
             }
         } catch (IOException e) {
@@ -34,15 +34,28 @@ public class ObjectCode {
              BufferedWriter writer = new BufferedWriter(new FileWriter(outputFileName))) {
 
             String line;
+            writer.write("H__Copy000000," + String.format("%06X", address));
+            writer.newLine();
+            int i = 0, j = 0;
+            String rowCode = "";
             while ((line = reader.readLine()) != null) {
                 String objectCode = assembleLine(line);
                 if (objectCode != null) {
-                    writer.write(objectCode);
-                    writer.newLine();
+                    rowCode += objectCode;
+                    if (i == 10) {
+                        writer.write("T"  + String.format("%06X", j) + String.format("%02X ", rowCode.length() / 2) + rowCode);
+                        j += rowCode.length() / 2;
+                        writer.newLine();
+                        rowCode = "";
+                        i = 0;
+                    } else {
+                        i++;
+                    }
                 }
             }
+            writer.write("E000000");
 
-            System.out.println("Assembly complete. Output written to " + outputFileName);
+            System.out.println("\nAssembly complete. Output written to " + outputFileName);
         } catch (IOException e) {
             e.printStackTrace();
         }
