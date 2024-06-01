@@ -106,7 +106,7 @@ public class Parser {
                 Statx s1, s2;
                 eat(ifx);
                 e1 = E();
-                byteCode("condicion", e1.toString());
+                assemblerCode("condicion", e1.toString());
                 eat(thenx);
                 s1 = S();
                 eat(elsex);
@@ -121,14 +121,14 @@ public class Parser {
                 declarationCheck(varName);
                 eat(igual);
                 e = E();
-                byteCode("asignacion", varName, e.toString());
+                assemblerCode("asignacion", varName, e.toString());
                 compatibilityCheck(varName, e.toString());
                 return new Asignax(i, e);
             case printx:
                 Expx ex;
                 eat(printx);
                 ex = E();
-                byteCode("print", tokenActual);
+                assemblerCode("print", tokenActual);
                 return new Printx(ex);
             default:
                 error(token, "(if | id | print)");
@@ -160,7 +160,7 @@ public class Parser {
             eat(id);
             i2 = new Idx(comp2);
             compatibilityCheck(i.getIdx(), comp2);
-            byteCode("suma", i.getIdx(), comp2);
+            assemblerCode("suma", i.getIdx(), comp2);
             return new Sumax(i, i2);
         } else {
             return i;
@@ -227,7 +227,7 @@ public class Parser {
             variable[i] = dx.s1;
             tipo[i] = dx.s2.getTypex();
             System.out.println(variable[i] + ": " + tipo[i]);
-            byteCode("igual", variable[i]);
+            assemblerCode("igual", variable[i]);
         }
 
         ArrayUtils.reverse(variable);
@@ -283,50 +283,56 @@ public class Parser {
         }
     }
 
-    public void byteCode(String tipo, String s1, String s2) {
+    public void assemblerCode(String tipo, String s1, String s2) {
         System.out.println(tipo + "," + s1 + "," + s2);
         int pos1 = -1, pos2 = -1;
-
+        String nombre = "", nombre2 = "";
         for (int i = 0; i < variable.length; i++) {
             if (s1.equals(variable[i])) {
                 pos1 = i;
+                nombre = variable[pos1];
             }
             if (s2.equals(variable[i])) {
                 pos2 = i;
+                nombre2 = variable[pos1];
             }
         }
 
         switch (tipo) {
             case "asignacion":
-                ipbc(cntIns + ": iload_" + pos1);
-                ipbc(cntIns + ": istore_" + pos2);
+                ipbc("MOV AX, " + nombre + "");
+                ipbc("MOV " + nombre2 + ", AX");
                 break;
             case "suma":
-                ipbc(cntIns + ": iload_" + pos1);
-                ipbc(cntIns + ": iload_" + pos2);
-                ipbc(cntIns + ": iadd");
+                ipbc("MOV AX, " + nombre + "");
+                ipbc("MOV BX, " + nombre2 + "");
+                ipbc("ADD AX, BX");
+                ipbc("MOV " + nombre + ", AX");
                 break;
         }
     }
 
-    public void byteCode(String tipo, String s1) {
+    public void assemblerCode(String tipo, String s1) {
         System.out.println(tipo + "," + s1);
         int pos1 = -1;
+        String nombre = "";
         for (int i = 0; i < variable.length; i++) {
             if (s1.equals(variable[i])) {
                 pos1 = i;
+                nombre = variable[pos1];
             }
         }
         switch (tipo) {
             case "condicion":
-                ipbc(cntIns + ": iload_" + pos1);
-                ipbc(cntIns + ": ifne " + (cntIns + 4));
-            break;
+                ipbc("MOV AX, " + nombre + "");
+                ipbc("CMP AX, 0");
+                ipbc("JE " + (cntIns + 4));
+                break;
             case "igual":
-                ipbc(cntIns + ": istore_" + pos1);
+                ipbc("MOV " + nombre + ", AX");
                 break;
             case "print":
-                ipbc(cntIns + ": iprint");
+                ipbc("CALL PRINT_AX");
                 break;
         }
     }
@@ -341,14 +347,52 @@ public class Parser {
         System.out.println(cntBC);
     }
 
-    public String getBytecode() {
-        System.out.println("se ejecuto bytecode");
-        String JBC = "";
+    public String getAssemblerCode() {
+
+        String JBC = "COPY:    START  0\n" +
+                "FIRST:   STL    RETADR\n" +
+                "         LDB    LENGTH\n" +
+                "         HIO\n" +
+                "CLOOP:\n" ;
+
+        JBC = JBC + "PRINT_AX PROC\n" +
+                "         MOV AH, 09h\n" +
+                "         MOV DX, OFFSET mensaje\n" +
+                "         INT 21h\n" +
+                "         MOV CX, 4\n" +
+                "         MOV BX, 10\n" +
+                "         MOV SI, OFFSET resultado\n" +
+                "PRINT_LOOP:\n" +
+                "          XOR DX, DX\n" +
+                "         DIV BX\n" +
+                "         ADD DL, '0'\n" +
+                "         MOV [SI], DL\n" +
+                "         INC SI\n" +
+                "         LOOP PRINT_LOOP\n" +
+                "         MOV AH, 09h\n" +
+                "         MOV DX, OFFSET RES\n" +
+                "         INT 21h\n" +
+                "         RET\n" +
+                "PRINT_AX ENDP\n";
         for (int i = 0; i < pilaBC.length; i++) {
             if (pilaBC[i] != null) {
-                JBC = JBC + pilaBC[i] + "\n";
+                JBC = JBC + "         " + pilaBC[i] + "\n";
             }
         }
+
+        JBC = JBC + "ENDFIL:\n" +
+                "         LDA    EOF\n" +
+                "         STA    BUFFER\n" +
+                "         LDA    3\n" +
+                "         STA    LENGTH\n" +
+                "         JSUB\tWRREC\n" +
+                "         J    RETADR\n" +
+                "EOF:\tBYTE\tC’CAE’\n" +
+                "RETADR:\tRESW\t8\n" +
+                "LENGTH:\tRESW\t4\n" +
+                "BUFFER:\tRESB\t8192\n" +
+                "EXIT:\tSTX\t    LENGTH\n" +
+                "         RSUB";
         return JBC;
     }
 
